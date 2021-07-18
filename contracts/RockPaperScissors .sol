@@ -8,11 +8,12 @@ pragma solidity ^0.8.0;
 contract RockPaperScissors {
 
     enum Moves{ ROCK, PAPER, SCISSORS, NOT_CHOSEN }
-    struct playerMoveStruct {
-        bool payed;
-        Moves move;
-        bool inGame;
-        uint256 paid;
+    enum GameModes{ GLOBAL, CUSTOM, NONE }
+
+    struct paidStruct {
+        bool paid;
+        uint256 waged;
+        GameModes GameMode;
     }
 
     struct customGame {
@@ -22,14 +23,17 @@ contract RockPaperScissors {
         Moves playerTwoMove;
     }
 
-    mapping(address => playerMoveStruct) playerMoves;
+    mapping(address => address) customGamePlayers;
+    mapping(address => paidStruct) players;
     mapping(address => customGame) customGames;
 
     address payable playerOne = payable(address(0));
     address payable playerTwo = payable(address(0));
-    string public winner;
-    address payable winnerAddress;
+    
+    Moves playerOneMove = Moves.NOT_CHOSEN;
+    Moves playerTwoMove = Moves.NOT_CHOSEN;
 
+    address payable winnerAddress;
 
     constructor()
     {}
@@ -40,135 +44,165 @@ contract RockPaperScissors {
 
     function enterNextRound(uint amount) payable public {
         require(msg.value == amount, "Amount is not equal to funds sent");
-        require(playerMoves[msg.sender].payed == false, "Already in next round");
-        playerMoves[msg.sender] = playerMoveStruct(true, Moves.NOT_CHOSEN, false, msg.value);
+        require(players[msg.sender].paid == false, "Already paid");
+        players[msg.sender] = paidStruct(true, msg.value, GameModes.NONE);
     }
 
     function withdrawWager() public payable {
-        payable(msg.sender).transfer(playerMoves[msg.sender].paid);
-        delete playerMoves[msg.sender];
+        require(players[msg.sender].waged > 0, "No funds to withdraw");
+        payable(msg.sender).transfer(players[msg.sender].waged);
+        delete players[msg.sender];
     }
 
     function chooseRock() public {
-        require(playerMoves[msg.sender].payed == true, "Player has not payed for next round");
-        require(playerMoves[msg.sender].inGame == false, "Player is already in game");
+        require(players[msg.sender].paid == true, "Player has not payed for next round");
+        require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
         setMove(Moves.ROCK);
     }
 
+    function chooseRockAgainst(address opponent) public {
+        require(players[msg.sender].paid == true, "Player has not payed for next round");
+        require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
+        require(players[opponent].paid == true, "opponent has not payed for next round");
+        require(customGamePlayers[opponent] == address(0) || customGamePlayers[opponent] == msg.sender, "Opponent is already in custome game with other player");
+        customGamePlayers[msg.sender] = opponent;
+        setCustomMove(Moves.ROCK, opponent);
+    }
+
     function choosePaper() public {
-        require(playerMoves[msg.sender].payed == true, "Player has not payed for next round");
-        require(playerMoves[msg.sender].inGame == false, "Already in game");
+        require(players[msg.sender].paid == true, "Player has not payed for next round");
+        require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
         setMove(Moves.PAPER);
     }
 
+    function choosePaperAgainst(address opponent) public {
+        require(players[msg.sender].paid == true, "Player has not payed for next round");
+        require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
+        require(players[opponent].paid == true, "opponent has not payed for next round");
+        require(customGamePlayers[opponent] == address(0) || customGamePlayers[opponent] == msg.sender, "Opponent is already in custome game with other player");
+        customGamePlayers[msg.sender] = opponent;
+        setCustomMove(Moves.PAPER, opponent);
+    }
+
     function chooseScissors() public {
-        require(playerMoves[msg.sender].payed == true, "Player has not payed for next round");
-        require(playerMoves[msg.sender].inGame == false, "Already in game");
+        require(players[msg.sender].paid == true, "Player has not payed for next round");
+        require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
         setMove(Moves.SCISSORS);
     }
 
-    function chooseRockAgainst(address oponent) public {
-        //Check if bothj players hasve paid
-        require(playerMoves[msg.sender].payed == true, "Player has not payed for next round");
-        require(playerMoves[oponent].payed == true, "Opponent has not payed for next round");
-
-        //Check if you and opponent are free to play
-        require(playerMoves[msg.sender].inGame == false, "You are already in game");
-        require(playerMoves[opponent].inGame == false, "Opponent is already in game");
-
-        require(customGames[msg.sender].playerTwo == address(0), "You are already in a custom game");
-        // require(customGames[oponent].playerTwo == address(0), "Opponent is already in a custom game");
-
-        //If custom game has not been setup yet, create it and set move
-        if(customGames[msg.sender].playerOne == address(0) && customGames[oponent].playerOne == address(0)){
-            customGame newGame = customGame(msg.sender, oponent, Moves.ROCK, Moves.NOT_CHOSEN);
-            customGames[msg.sender] = newGame;
-            customGames[oponent] = newGame;
-        } else {
-            customGames[msg.sender].playerTwoMove = Moves.ROCK;
-
-            //Find winner
-        }
-
-        //Check if both players have made their move
+    function chooseScissorsAgainst(address opponent) public {
+        require(players[msg.sender].paid == true, "Player has not payed for next round");
+        require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
+        require(players[opponent].paid == true, "opponent has not payed for next round");
+        require(customGamePlayers[opponent] == address(0) || customGamePlayers[opponent] == msg.sender, "Opponent is already in custome game with other player");
+        customGamePlayers[msg.sender] = opponent;
+        setCustomMove(Moves.SCISSORS, opponent);
     }
 
     function setMove(Moves _move) internal {
-        //Check if game already has 2 players
-        require(playerOne == address(0) || playerTwo == address(0), "A game is currently already in progress");
-        
+        //Check if global game already has 2 players (turn into modifier)
+        require(playerOne == address(0) || playerTwo == address(0), "A global game is currently already in progress");
+        players[msg.sender].GameMode = GameModes.GLOBAL;
+
         //Assiging move
         if(playerOne == address(0)){
             playerOne = payable(msg.sender);
-            playerMoves[msg.sender].move = _move;
-            playerMoves[msg.sender].inGame = true;
+            playerOneMove = _move;
         }
         else if (playerTwo == address(0))  {
             playerTwo = payable(msg.sender);
-            playerMoves[msg.sender].move = _move;
-            playerMoves[msg.sender].inGame = true;
+            playerTwoMove = _move;
         }
 
         if(playerOne != address(0) && playerTwo != address(0)){
-            findWinner();
+            winnerAddress = payable(findWinner(playerOneMove, playerTwoMove, playerOne, playerTwo));
+            sendGlobalWinnings(playerOne);
         }
     }
 
-    function findWinner() internal {
-        if(playerMoves[playerOne].move == Moves.PAPER){
-            if(playerMoves[playerTwo].move == Moves.PAPER){
-                //I dont know
-            } 
-            else if (playerMoves[playerTwo].move == Moves.ROCK){
-                winner = "WINNER = Player One";
-                winnerAddress = playerOne;
-            }
-            else if (playerMoves[playerTwo].move == Moves.SCISSORS){
-                winner = "WINNER = Player Two";
-                winnerAddress = playerTwo;
-            }
+    function setCustomMove(Moves _move, address opponent) internal {
+        players[msg.sender].GameMode == GameModes.CUSTOM;
+        //Create new custom game between players if not already created
+        if(customGamePlayers[opponent] == address(0)){
+            customGame memory newGame = customGame(payable(msg.sender), payable(opponent), _move, Moves.NOT_CHOSEN);
+            customGames[msg.sender] = newGame;
+            customGames[opponent] = newGame;
         }
-        else if(playerMoves[playerOne].move == Moves.ROCK){
-            if(playerMoves[playerTwo].move == Moves.PAPER){
-                winner = "WINNER = Player Two";
-                winnerAddress = playerTwo;
-            } 
-            else if (playerMoves[playerTwo].move == Moves.ROCK){
-            
-            }
-            else if (playerMoves[playerTwo].move == Moves.SCISSORS){
-                winnerAddress = playerOne;
-                winner = "WINNER = Player One";
-            }
+        //Add move to game if already created by opponent
+        else{
+            customGames[msg.sender].playerTwoMove = _move;
+            address payable winner = payable(findWinner(customGames[msg.sender].playerTwoMove, customGames[opponent].playerOneMove, msg.sender, opponent));
+            sendCustomerWinnings(winner);
         }
-        else if (playerMoves[playerOne].move == Moves.SCISSORS){
-            if(playerMoves[playerTwo].move == Moves.PAPER){
-                winnerAddress = playerOne;
-                winner = "WINNER = Player One";
-            } 
-            else if (playerMoves[playerTwo].move == Moves.ROCK){
-                winnerAddress = playerTwo;
-                winner = "WINNER = Player Two";
-            }
-            else if (playerMoves[playerTwo].move == Moves.SCISSORS){
-                
-            }
-        }
+    }
 
-        if(winnerAddress != address(0)){
-            sendWinnings();
+    function findWinner(Moves _move1, Moves _move2, address _player1, address _player2) internal returns (address) {
+        if(_move1 == Moves.PAPER){
+            if(_move2 == Moves.PAPER){
+                return address(0);
+            } 
+            else if (_move2 == Moves.ROCK){
+                winnerAddress = playerOne;
+                return _player1;
+            }
+            else if (_move2 == Moves.SCISSORS){
+                winnerAddress = playerTwo;
+                return _player2;
+            }
         }
+        else if(_move1 == Moves.ROCK){
+            if(playerTwoMove == Moves.PAPER){
+                winnerAddress = playerTwo;
+                return _player2;
+            } 
+            else if (playerTwoMove == Moves.ROCK){
+                return address(0);
+            }
+            else if (playerTwoMove == Moves.SCISSORS){
+                winnerAddress = playerOne;
+                return _player1;
+            }
+        }
+        else if (_move1 == Moves.SCISSORS){
+            if(playerTwoMove == Moves.PAPER){
+                winnerAddress = playerOne;
+                return _player1;
+            } 
+            else if (playerTwoMove == Moves.ROCK){
+                winnerAddress = playerTwo;
+                return _player2;
+            }
+            else if (playerTwoMove == Moves.SCISSORS){
+                return address(0);
+            }
+        }
+        return address(0);
     }
     
-    function sendWinnings() internal {
-        winnerAddress.transfer(address(this).balance);
-        clearPlayerData();
+    function sendCustomerWinnings(address payable _winner) internal {
+
+        address _loser = customGamePlayers[_winner];
+
+        _winner.transfer(players[_winner].waged+players[_loser].waged);
+
+        delete players[_winner];
+        delete players[_loser];
+
+        delete customGamePlayers[_winner];
+        delete customGamePlayers[_loser];
+
+        delete customGames[_winner];
+        delete customGames[_loser];
     }
 
-    function clearPlayerData() internal {
-        winnerAddress = payable(address(0));
-        delete playerMoves[playerOne];
-        delete playerMoves[playerTwo];
+    function sendGlobalWinnings(address payable _winner) internal {
+        _winner.transfer(players[playerOne].waged + players[playerTwo].waged);
+        clearGlobalPlayerData();
+    }
+
+    function clearGlobalPlayerData() internal {
+        delete players[playerOne];
+        delete players[playerTwo];
         playerOne = payable(address(0));
         playerTwo = payable(address(0));
     }
