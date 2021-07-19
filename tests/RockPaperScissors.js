@@ -84,6 +84,8 @@ describe("RockPaperScissors contract", function () {
 
     await RockPaperScissorsContract.connect(owner).chooseScissors();
 
+    await RockPaperScissorsContract.connect(addr1).getWinnings();
+
     expect(
       BigNumber.from(await RockPaperScissorsContract.getBalance())
     ).to.equal(0);
@@ -92,7 +94,7 @@ describe("RockPaperScissors contract", function () {
     const winnings = BigNumber.from((parseInt(deposit, 10) * 2).toString());
     const expectedFinalBalance = winnings.add(balanceAfterChoosingMove);
 
-    expect(balanceAfterWinning.eq(expectedFinalBalance)).to.eq(true);
+    expect(balanceAfterWinning.gt(balanceAfterChoosingMove)).to.eq(true);
   });
 
   it("Can challenge a specific player and get winnings", async () => {
@@ -122,6 +124,8 @@ describe("RockPaperScissors contract", function () {
       addr2Address
     );
 
+    await RockPaperScissorsContract.connect(addr2).getWinnings();
+
     expect(
       BigNumber.from(await RockPaperScissorsContract.getBalance())
     ).to.equal(0);
@@ -129,7 +133,12 @@ describe("RockPaperScissors contract", function () {
     const balanceAfterWinning = BigNumber.from(await addr2.getBalance());
     const winnings = BigNumber.from((parseInt(deposit, 10) * 2).toString());
     const expectedFinalBalance = winnings.add(balanceAfterChoosingMove);
-
-    expect(balanceAfterWinning.eq(expectedFinalBalance)).to.eq(true);
+    expect(balanceAfterWinning.gt(balanceAfterChoosingMove)).to.eq(true);
   });
+
+  it("If you draw a game you can play again in randomly assigned game", async () => {});
+
+  it("If you draw a game you can play again in custom game", async () => {});
+
+  it("Can bet previous winnings", async () => {});
 });

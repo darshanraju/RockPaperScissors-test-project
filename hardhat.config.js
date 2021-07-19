@@ -6,7 +6,10 @@ require("@nomiclabs/hardhat-waffle");
 module.exports = {
   defaultNetwork: "localhost",
   networks: {
-    hardhat: {},
+    hardhat: {
+      gasPrice: 0,
+      gas: 0,
+    },
     localhost: {
       url: "http://127.0.0.1:8545",
     },
