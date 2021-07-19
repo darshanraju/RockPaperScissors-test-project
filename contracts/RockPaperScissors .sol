@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import "hardhat/console.sol";
+
 /**
     ADD NATSPEC
  */
@@ -25,13 +27,13 @@ contract RockPaperScissors {
 
     mapping(address => address) customGamePlayers;
     mapping(address => paidStruct) players;
-    mapping(address => customGame) customGames;
+    mapping(address => customGame) public customGames;
 
     address payable playerOne = payable(address(0));
     address payable playerTwo = payable(address(0));
     
-    Moves playerOneMove = Moves.NOT_CHOSEN;
-    Moves playerTwoMove = Moves.NOT_CHOSEN;
+    Moves public playerOneMove = Moves.NOT_CHOSEN;
+    Moves public playerTwoMove = Moves.NOT_CHOSEN;
 
     address payable winnerAddress;
 
@@ -43,6 +45,10 @@ contract RockPaperScissors {
     }
 
     function enterNextRound(uint amount) payable public {
+
+        console.log("Recieving Value: %s", msg.value);
+        console.log("Amount said: %s", amount);
+
         require(msg.value == amount, "Amount is not equal to funds sent");
         require(players[msg.sender].paid == false, "Already paid");
         players[msg.sender] = paidStruct(true, msg.value, GameModes.NONE);
@@ -61,6 +67,10 @@ contract RockPaperScissors {
     }
 
     function chooseRockAgainst(address opponent) public {
+
+        console.log("ROCK opponent: ", opponent);
+
+
         require(players[msg.sender].paid == true, "Player has not payed for next round");
         require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
         require(players[opponent].paid == true, "opponent has not payed for next round");
@@ -91,6 +101,9 @@ contract RockPaperScissors {
     }
 
     function chooseScissorsAgainst(address opponent) public {
+
+        console.log("Scissors opponent: ", opponent);
+
         require(players[msg.sender].paid == true, "Player has not payed for next round");
         require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
         require(players[opponent].paid == true, "opponent has not payed for next round");
@@ -116,22 +129,30 @@ contract RockPaperScissors {
 
         if(playerOne != address(0) && playerTwo != address(0)){
             winnerAddress = payable(findWinner(playerOneMove, playerTwoMove, playerOne, playerTwo));
-            sendGlobalWinnings(playerOne);
+            console.log("winner: ", winnerAddress);
+            sendGlobalWinnings(winnerAddress);
         }
     }
 
     function setCustomMove(Moves _move, address opponent) internal {
         players[msg.sender].GameMode == GameModes.CUSTOM;
+
         //Create new custom game between players if not already created
         if(customGamePlayers[opponent] == address(0)){
+            console.log("Creating new game: ", msg.sender);
             customGame memory newGame = customGame(payable(msg.sender), payable(opponent), _move, Moves.NOT_CHOSEN);
             customGames[msg.sender] = newGame;
             customGames[opponent] = newGame;
         }
         //Add move to game if already created by opponent
         else{
+            console.log("Need to find winner");
             customGames[msg.sender].playerTwoMove = _move;
+                        console.log("player 1: ",opponent );
+            console.log("player 2: ",msg.sender );
             address payable winner = payable(findWinner(customGames[msg.sender].playerTwoMove, customGames[opponent].playerOneMove, msg.sender, opponent));
+
+            console.log("Winner: ", winner);
             sendCustomerWinnings(winner);
         }
     }
@@ -151,31 +172,38 @@ contract RockPaperScissors {
             }
         }
         else if(_move1 == Moves.ROCK){
-            if(playerTwoMove == Moves.PAPER){
+            if(_move2 == Moves.PAPER){
                 winnerAddress = playerTwo;
                 return _player2;
             } 
-            else if (playerTwoMove == Moves.ROCK){
+            else if (_move2 == Moves.ROCK){
                 return address(0);
             }
-            else if (playerTwoMove == Moves.SCISSORS){
+            else if (_move2 == Moves.SCISSORS){
                 winnerAddress = playerOne;
                 return _player1;
             }
         }
         else if (_move1 == Moves.SCISSORS){
-            if(playerTwoMove == Moves.PAPER){
+            console.log("scissors move");
+            if(_move2 == Moves.PAPER){
+                                                console.log("ROCK PAPA ");
+
                 winnerAddress = playerOne;
                 return _player1;
             } 
-            else if (playerTwoMove == Moves.ROCK){
+            else if (_move2 == Moves.ROCK){
+                console.log("ROCK MOVE ");
                 winnerAddress = playerTwo;
                 return _player2;
             }
-            else if (playerTwoMove == Moves.SCISSORS){
+            else if (_move2 == Moves.SCISSORS){
+                                console.log("ROCK SCISSOR ");
+
                 return address(0);
             }
         }
+        console.log("NO MATCH");
         return address(0);
     }
     
@@ -196,6 +224,10 @@ contract RockPaperScissors {
     }
 
     function sendGlobalWinnings(address payable _winner) internal {
+
+        console.log("Winner is: ", _winner);
+        console.log("Sending: ", players[playerOne].waged + players[playerTwo].waged);
+
         _winner.transfer(players[playerOne].waged + players[playerTwo].waged);
         clearGlobalPlayerData();
     }
@@ -205,5 +237,9 @@ contract RockPaperScissors {
         delete players[playerTwo];
         playerOne = payable(address(0));
         playerTwo = payable(address(0));
+    }
+
+    function getWinningsBalance() public returns (uint256) {
+        //From global game?
     }
 }
