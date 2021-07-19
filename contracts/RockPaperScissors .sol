@@ -41,6 +41,27 @@ contract RockPaperScissors {
     constructor()
     {}
 
+    modifier PayedPlayer() {
+        require(players[msg.sender].paid == true, "Player has not payed for next round");
+        _;
+    }   
+
+    modifier PlayerInGame() {
+        require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
+        _;
+    }   
+
+    modifier OpponentPaid(address opponent) {
+        require(players[opponent].paid == true, "opponent has not payed for next round");
+        _;
+    }   
+
+    modifier OpponentInGame(address opponent) {
+        //Should this be customGamePlayers[opponent] != address(0) && customGamePlayers[opponent] == msg.sender
+        require(customGamePlayers[opponent] == address(0) || customGamePlayers[opponent] == msg.sender, "Opponent is already in custom game with other player");
+        _;
+    }
+
     function getBalance () public view returns (uint256) {
         return address(this).balance;
     }
@@ -63,47 +84,47 @@ contract RockPaperScissors {
         delete players[msg.sender];
     }
 
-    function chooseRock() public {
-        require(players[msg.sender].paid == true, "Player has not payed for next round");
-        require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
+    function chooseRock() public PayedPlayer PlayerInGame {
+        // require(players[msg.sender].paid == true, "Player has not payed for next round");
+        // require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
         setMove(Moves.ROCK);
     }
 
-    function chooseRockAgainst(address opponent) public {
-        require(players[msg.sender].paid == true, "Player has not payed for next round");
-        require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
-        require(players[opponent].paid == true, "opponent has not payed for next round");
-        require(customGamePlayers[opponent] == address(0) || customGamePlayers[opponent] == msg.sender, "Opponent is already in custome game with other player");
+    function chooseRockAgainst(address opponent) public PayedPlayer PlayerInGame OpponentPaid(opponent) OpponentInGame(opponent) {
+        // require(players[msg.sender].paid == true, "Player has not payed for next round");
+        // require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
+        // require(players[opponent].paid == true, "opponent has not payed for next round");
+        // require(customGamePlayers[opponent] == address(0) || customGamePlayers[opponent] == msg.sender, "Opponent is already in custome game with other player");
         customGamePlayers[msg.sender] = opponent;
         setCustomMove(Moves.ROCK, opponent);
     }
 
-    function choosePaper() public {
-        require(players[msg.sender].paid == true, "Player has not payed for next round");
-        require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
+    function choosePaper() public PayedPlayer PlayerInGame{
+        // require(players[msg.sender].paid == true, "Player has not payed for next round");
+        // require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
         setMove(Moves.PAPER);
     }
 
-    function choosePaperAgainst(address opponent) public {
-        require(players[msg.sender].paid == true, "Player has not payed for next round");
-        require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
-        require(players[opponent].paid == true, "opponent has not payed for next round");
-        require(customGamePlayers[opponent] == address(0) || customGamePlayers[opponent] == msg.sender, "Opponent is already in custome game with other player");
+    function choosePaperAgainst(address opponent) public PayedPlayer PlayerInGame OpponentPaid(opponent)  OpponentInGame(opponent) {
+        // require(players[msg.sender].paid == true, "Player has not payed for next round");
+        // require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
+        // require(players[opponent].paid == true, "opponent has not payed for next round");
+        // require(customGamePlayers[opponent] == address(0) || customGamePlayers[opponent] == msg.sender, "Opponent is already in custome game with other player");
         customGamePlayers[msg.sender] = opponent;
         setCustomMove(Moves.PAPER, opponent);
     }
 
-    function chooseScissors() public {
-        require(players[msg.sender].paid == true, "Player has not payed for next round");
-        require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
+    function chooseScissors() public PayedPlayer PlayerInGame{
+        // require(players[msg.sender].paid == true, "Player has not payed for next round");
+        // require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
         setMove(Moves.SCISSORS);
     }
 
-    function chooseScissorsAgainst(address opponent) public {
-        require(players[msg.sender].paid == true, "Player has not payed for next round");
-        require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
-        require(players[opponent].paid == true, "opponent has not payed for next round");
-        require(customGamePlayers[opponent] == address(0) || customGamePlayers[opponent] == msg.sender, "Opponent is already in custome game with other player");
+    function chooseScissorsAgainst(address opponent) public PayedPlayer PlayerInGame OpponentPaid(opponent)  OpponentInGame(opponent) {
+        // require(players[msg.sender].paid == true, "Player has not payed for next round");
+        // require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
+        // require(players[opponent].paid == true, "opponent has not payed for next round");
+        // require(customGamePlayers[opponent] == address(0) || customGamePlayers[opponent] == msg.sender, "Opponent is already in custome game with other player");
         customGamePlayers[msg.sender] = opponent;
         setCustomMove(Moves.SCISSORS, opponent);
     }
@@ -125,8 +146,14 @@ contract RockPaperScissors {
 
         if(playerOne != address(0) && playerTwo != address(0)){
             winnerAddress = payable(findWinner(playerOneMove, playerTwoMove, playerOne, playerTwo));
-            setGlobalWinnings(winnerAddress);
-            clearGlobalPlayerData();
+            if(winnerAddress == address(0)){
+                //Draw
+                playerOne == address(0);
+                playerTwo == address(0);
+            } else {
+                setGlobalWinnings(winnerAddress);
+                clearGlobalPlayerData();
+            }
         }
     }
 
@@ -143,8 +170,14 @@ contract RockPaperScissors {
         else{
             customGames[msg.sender].playerTwoMove = _move;
             address payable winner = payable(findWinner(customGames[msg.sender].playerTwoMove, customGames[opponent].playerOneMove, msg.sender, opponent));
-            setCustomerWinnings(winner);
-            clearCustomGamePlayerData(msg.sender, opponent);
+            if(winner == address(0)){
+                //Draw
+                delete customGames[msg.sender];
+                delete customGames[opponent];
+            } else {
+                setCustomerWinnings(winner);
+                clearCustomGamePlayerData(msg.sender, opponent);
+            }
         }
     }
 
@@ -191,6 +224,7 @@ contract RockPaperScissors {
     }
 
     function setGlobalWinnings(address payable _winner) internal {
+        require(_winner != address(0), "Was a draw");
         winnings[_winner] += players[playerOne].waged + players[playerTwo].waged;
     }
 
