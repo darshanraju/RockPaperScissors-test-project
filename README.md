@@ -13,11 +13,11 @@ There are many ways to implement this, so we leave that up to you.
 
 Nice to have, but not necessary.
 
-- Make it a utility whereby any 2 people can decide to play against each other.
+- Make it a utility whereby any 2 people can decide to play against each other. (DONE)
 - Reduce gas costs as much as possible.
-- Let players bet their previous winnings.
+- Let players bet their previous winnings. (DONE)
 - How can you entice players to play, knowing that they may have their funds stuck in the contract if they face an uncooperative player? (DONE)
-- Include any tests using Hardhat.
+- Include any tests using Hardhat. (DONE)
 
 Now fork this repo and do it!
 
