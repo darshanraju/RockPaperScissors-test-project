@@ -57,7 +57,6 @@ contract RockPaperScissors {
     }   
 
     modifier OpponentInGame(address opponent) {
-        //Should this be customGamePlayers[opponent] != address(0) && customGamePlayers[opponent] == msg.sender
         require(customGamePlayers[opponent] == address(0) || customGamePlayers[opponent] == msg.sender, "Opponent is already in custom game with other player");
         _;
     }
@@ -85,46 +84,28 @@ contract RockPaperScissors {
     }
 
     function chooseRock() public PayedPlayer PlayerInGame {
-        // require(players[msg.sender].paid == true, "Player has not payed for next round");
-        // require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
         setMove(Moves.ROCK);
     }
 
     function chooseRockAgainst(address opponent) public PayedPlayer PlayerInGame OpponentPaid(opponent) OpponentInGame(opponent) {
-        // require(players[msg.sender].paid == true, "Player has not payed for next round");
-        // require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
-        // require(players[opponent].paid == true, "opponent has not payed for next round");
-        // require(customGamePlayers[opponent] == address(0) || customGamePlayers[opponent] == msg.sender, "Opponent is already in custome game with other player");
         customGamePlayers[msg.sender] = opponent;
         setCustomMove(Moves.ROCK, opponent);
     }
 
     function choosePaper() public PayedPlayer PlayerInGame{
-        // require(players[msg.sender].paid == true, "Player has not payed for next round");
-        // require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
         setMove(Moves.PAPER);
     }
 
     function choosePaperAgainst(address opponent) public PayedPlayer PlayerInGame OpponentPaid(opponent)  OpponentInGame(opponent) {
-        // require(players[msg.sender].paid == true, "Player has not payed for next round");
-        // require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
-        // require(players[opponent].paid == true, "opponent has not payed for next round");
-        // require(customGamePlayers[opponent] == address(0) || customGamePlayers[opponent] == msg.sender, "Opponent is already in custome game with other player");
         customGamePlayers[msg.sender] = opponent;
         setCustomMove(Moves.PAPER, opponent);
     }
 
     function chooseScissors() public PayedPlayer PlayerInGame{
-        // require(players[msg.sender].paid == true, "Player has not payed for next round");
-        // require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
         setMove(Moves.SCISSORS);
     }
 
     function chooseScissorsAgainst(address opponent) public PayedPlayer PlayerInGame OpponentPaid(opponent)  OpponentInGame(opponent) {
-        // require(players[msg.sender].paid == true, "Player has not payed for next round");
-        // require(players[msg.sender].GameMode == GameModes.NONE, "Player is already in game");
-        // require(players[opponent].paid == true, "opponent has not payed for next round");
-        // require(customGamePlayers[opponent] == address(0) || customGamePlayers[opponent] == msg.sender, "Opponent is already in custome game with other player");
         customGamePlayers[msg.sender] = opponent;
         setCustomMove(Moves.SCISSORS, opponent);
     }
@@ -148,8 +129,11 @@ contract RockPaperScissors {
             winnerAddress = payable(findWinner(playerOneMove, playerTwoMove, playerOne, playerTwo));
             if(winnerAddress == address(0)){
                 //Draw
-                playerOne == address(0);
-                playerTwo == address(0);
+                players[playerOne].GameMode = GameModes.NONE;
+                players[playerTwo].GameMode = GameModes.NONE;
+
+                playerOne = payable(address(0));
+                playerTwo = payable(address(0));
             } else {
                 setGlobalWinnings(winnerAddress);
                 clearGlobalPlayerData();
@@ -160,7 +144,7 @@ contract RockPaperScissors {
     function setCustomMove(Moves _move, address opponent) internal {
         players[msg.sender].GameMode == GameModes.CUSTOM;
 
-        //Create new custom game between players if not already created
+        //Create new custom game between players if opponent hasn't already started a game against you
         if(customGamePlayers[opponent] == address(0)){
             customGame memory newGame = customGame(payable(msg.sender), payable(opponent), _move, Moves.NOT_CHOSEN);
             customGames[msg.sender] = newGame;
@@ -174,6 +158,12 @@ contract RockPaperScissors {
                 //Draw
                 delete customGames[msg.sender];
                 delete customGames[opponent];
+
+                delete customGamePlayers[msg.sender];
+                delete customGamePlayers[opponent];
+
+                players[msg.sender].GameMode = GameModes.NONE;
+                players[opponent].GameMode = GameModes.NONE;
             } else {
                 setCustomerWinnings(winner);
                 clearCustomGamePlayerData(msg.sender, opponent);
@@ -224,7 +214,6 @@ contract RockPaperScissors {
     }
 
     function setGlobalWinnings(address payable _winner) internal {
-        require(_winner != address(0), "Was a draw");
         winnings[_winner] += players[playerOne].waged + players[playerTwo].waged;
     }
 
@@ -252,10 +241,3 @@ contract RockPaperScissors {
         winnings[msg.sender] = 0;
     }
 }
-
-/**
-    Have a mapping address => uint256 winnings
-    This stores all winnings and can be used to withdraw moneyout of of if you won any games
-
-    Have a goAGAIN function that reuses previous won bet to enter in the next round
- */

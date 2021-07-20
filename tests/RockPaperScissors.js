@@ -64,6 +64,20 @@ describe("RockPaperScissors contract", function () {
     );
   });
 
+  it("Cannot set move if opponent hasn't payed", async () => {
+    const deposit = "10000000000000000000";
+    const addr2Address = await addr2.getAddress();
+    const addr3Address = await addr3.getAddress();
+
+    await RockPaperScissorsContract.connect(addr2).enterNextRound(deposit, {
+      value: deposit,
+    });
+
+    await expect(
+      RockPaperScissorsContract.connect(addr2).chooseRockAgainst(addr3Address)
+    ).to.be.revertedWith("opponent has not payed for next round");
+  });
+
   it("Recieve all funds after winning game a move after paying", async () => {
     const deposit = "10000000000000000000";
 
@@ -136,9 +150,129 @@ describe("RockPaperScissors contract", function () {
     expect(balanceAfterWinning.gt(balanceAfterChoosingMove)).to.eq(true);
   });
 
-  it("If you draw a game you can play again in randomly assigned game", async () => {});
+  it("If you draw a game you can play again in randomly assigned game", async () => {
+    const deposit = "10000000000000000000";
 
-  it("If you draw a game you can play again in custom game", async () => {});
+    await RockPaperScissorsContract.connect(owner).enterNextRound(deposit, {
+      value: deposit,
+    });
 
-  it("Can bet previous winnings", async () => {});
+    await RockPaperScissorsContract.connect(addr1).enterNextRound(deposit, {
+      value: deposit,
+    });
+
+    expect(
+      BigNumber.from(await RockPaperScissorsContract.getBalance())
+    ).to.equal((deposit * 2).toString());
+
+    await RockPaperScissorsContract.connect(addr1).chooseRock();
+    const balanceAfterChoosingMove = BigNumber.from(await addr1.getBalance());
+
+    await RockPaperScissorsContract.connect(owner).chooseRock();
+
+    expect(
+      BigNumber.from(await RockPaperScissorsContract.getBalance())
+    ).to.equal((deposit * 2).toString());
+
+    await RockPaperScissorsContract.connect(addr1).chooseRock();
+    await RockPaperScissorsContract.connect(owner).chooseScissors();
+
+    await RockPaperScissorsContract.connect(addr1).getWinnings();
+
+    const balanceAfterWinning = BigNumber.from(await addr1.getBalance());
+    const winnings = BigNumber.from((parseInt(deposit, 10) * 2).toString());
+    const expectedFinalBalance = winnings.add(balanceAfterChoosingMove);
+
+    expect(balanceAfterWinning.gt(balanceAfterChoosingMove)).to.eq(true);
+  });
+
+  it("If you draw a game you can play again in custom game", async () => {
+    const deposit = "10000000000000000000";
+    const addr2Address = await addr2.getAddress();
+    const addr3Address = await addr3.getAddress();
+
+    await RockPaperScissorsContract.connect(addr2).enterNextRound(deposit, {
+      value: deposit,
+    });
+
+    await RockPaperScissorsContract.connect(addr3).enterNextRound(deposit, {
+      value: deposit,
+    });
+
+    expect(
+      BigNumber.from(await RockPaperScissorsContract.getBalance())
+    ).to.equal((deposit * 2).toString());
+
+    await RockPaperScissorsContract.connect(addr2).chooseScissorsAgainst(
+      addr3Address
+    );
+
+    await RockPaperScissorsContract.connect(addr3).chooseScissorsAgainst(
+      addr2Address
+    );
+
+    expect(
+      BigNumber.from(await RockPaperScissorsContract.getBalance())
+    ).to.equal((deposit * 2).toString());
+
+    const balanceAfterChoosingMove = BigNumber.from(await addr3.getBalance());
+
+    await RockPaperScissorsContract.connect(addr2).chooseScissorsAgainst(
+      addr3Address
+    );
+
+    await RockPaperScissorsContract.connect(addr3).chooseRockAgainst(
+      addr2Address
+    );
+
+    await RockPaperScissorsContract.connect(addr3).getWinnings();
+
+    expect(
+      BigNumber.from(await RockPaperScissorsContract.getBalance())
+    ).to.equal(0);
+
+    const balanceAfterWinning = BigNumber.from(await addr3.getBalance());
+    expect(balanceAfterWinning.gt(balanceAfterChoosingMove)).to.eq(true);
+  });
+
+  it("Can bet previous winnings", async () => {
+    const deposit = "10000000000000000000";
+
+    await RockPaperScissorsContract.connect(owner).enterNextRound(deposit, {
+      value: deposit,
+    });
+
+    await RockPaperScissorsContract.connect(addr1).enterNextRound(deposit, {
+      value: deposit,
+    });
+
+    expect(
+      BigNumber.from(await RockPaperScissorsContract.getBalance())
+    ).to.equal((deposit * 2).toString());
+
+    await RockPaperScissorsContract.connect(addr1).chooseRock();
+    await RockPaperScissorsContract.connect(owner).chooseScissors();
+
+    const balanceAfterChoosingMove = BigNumber.from(await addr1.getBalance());
+
+    await RockPaperScissorsContract.connect(addr1).betWinnings();
+    await RockPaperScissorsContract.connect(owner).enterNextRound(deposit, {
+      value: deposit,
+    });
+
+    await RockPaperScissorsContract.connect(addr1).chooseRock();
+    await RockPaperScissorsContract.connect(owner).chooseScissors();
+
+    expect(
+      BigNumber.from(await RockPaperScissorsContract.getBalance())
+    ).to.equal((deposit * 3).toString());
+
+    await RockPaperScissorsContract.connect(addr1).getWinnings();
+
+    const balanceAfterWinning = BigNumber.from(await addr1.getBalance());
+    const winnings = BigNumber.from((parseInt(deposit, 10) * 2).toString());
+    const expectedFinalBalance = winnings.add(balanceAfterChoosingMove);
+
+    expect(balanceAfterWinning.gt(balanceAfterChoosingMove)).to.eq(true);
+  });
 });
