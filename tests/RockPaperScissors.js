@@ -22,17 +22,21 @@ describe("RockPaperScissors contract", function () {
 
   it("Can pay to enter next round", async () => {
     const deposit = 1000;
+
     await RockPaperScissorsContract.enterNextRound(deposit, {
       value: deposit,
     });
+    
     expect(await RockPaperScissorsContract.getBalance()).to.equal(deposit);
   });
 
   it("Cannot pay twice to enter next round", async () => {
     const deposit = 1000;
+
     await RockPaperScissorsContract.enterNextRound(deposit, {
       value: deposit,
     });
+
     await expect(
       RockPaperScissorsContract.enterNextRound(deposit, {
         value: deposit,
@@ -42,6 +46,7 @@ describe("RockPaperScissors contract", function () {
 
   it("Cannot send inssufficient funds to enter next round", async () => {
     const deposit = 1000;
+
     await expect(
       RockPaperScissorsContract.enterNextRound(deposit, {
         value: deposit - 1,
@@ -51,6 +56,7 @@ describe("RockPaperScissors contract", function () {
 
   it("Can select a move after paying", async () => {
     const deposit = 1000;
+
     await RockPaperScissorsContract.enterNextRound(deposit, {
       value: deposit,
     });
@@ -66,7 +72,6 @@ describe("RockPaperScissors contract", function () {
 
   it("Cannot set move if opponent hasn't payed", async () => {
     const deposit = "10000000000000000000";
-    const addr2Address = await addr2.getAddress();
     const addr3Address = await addr3.getAddress();
 
     await RockPaperScissorsContract.connect(addr2).enterNextRound(deposit, {
@@ -84,7 +89,6 @@ describe("RockPaperScissors contract", function () {
     await RockPaperScissorsContract.connect(owner).enterNextRound(deposit, {
       value: deposit,
     });
-
     await RockPaperScissorsContract.connect(addr1).enterNextRound(deposit, {
       value: deposit,
     });
@@ -94,9 +98,9 @@ describe("RockPaperScissors contract", function () {
     ).to.equal((deposit * 2).toString());
 
     await RockPaperScissorsContract.connect(addr1).chooseRock();
-    const balanceAfterChoosingMove = BigNumber.from(await addr1.getBalance());
-
     await RockPaperScissorsContract.connect(owner).chooseScissors();
+
+    const balanceAfterChoosingMove = BigNumber.from(await addr1.getBalance());
 
     await RockPaperScissorsContract.connect(addr1).getWinnings();
 
@@ -119,7 +123,6 @@ describe("RockPaperScissors contract", function () {
     await RockPaperScissorsContract.connect(addr2).enterNextRound(deposit, {
       value: deposit,
     });
-
     await RockPaperScissorsContract.connect(addr3).enterNextRound(deposit, {
       value: deposit,
     });
@@ -131,12 +134,11 @@ describe("RockPaperScissors contract", function () {
     await RockPaperScissorsContract.connect(addr2).chooseRockAgainst(
       addr3Address
     );
-
-    const balanceAfterChoosingMove = BigNumber.from(await addr2.getBalance());
-
     await RockPaperScissorsContract.connect(addr3).chooseScissorsAgainst(
       addr2Address
     );
+
+    const balanceAfterChoosingMove = BigNumber.from(await addr2.getBalance())
 
     await RockPaperScissorsContract.connect(addr2).getWinnings();
 
@@ -156,7 +158,6 @@ describe("RockPaperScissors contract", function () {
     await RockPaperScissorsContract.connect(owner).enterNextRound(deposit, {
       value: deposit,
     });
-
     await RockPaperScissorsContract.connect(addr1).enterNextRound(deposit, {
       value: deposit,
     });
@@ -166,17 +167,16 @@ describe("RockPaperScissors contract", function () {
     ).to.equal((deposit * 2).toString());
 
     await RockPaperScissorsContract.connect(addr1).chooseRock();
-    const balanceAfterChoosingMove = BigNumber.from(await addr1.getBalance());
-
     await RockPaperScissorsContract.connect(owner).chooseRock();
 
     expect(
       BigNumber.from(await RockPaperScissorsContract.getBalance())
     ).to.equal((deposit * 2).toString());
 
+    const balanceAfterChoosingMove = BigNumber.from(await addr1.getBalance());
+
     await RockPaperScissorsContract.connect(addr1).chooseRock();
     await RockPaperScissorsContract.connect(owner).chooseScissors();
-
     await RockPaperScissorsContract.connect(addr1).getWinnings();
 
     const balanceAfterWinning = BigNumber.from(await addr1.getBalance());
@@ -194,7 +194,6 @@ describe("RockPaperScissors contract", function () {
     await RockPaperScissorsContract.connect(addr2).enterNextRound(deposit, {
       value: deposit,
     });
-
     await RockPaperScissorsContract.connect(addr3).enterNextRound(deposit, {
       value: deposit,
     });
@@ -206,7 +205,6 @@ describe("RockPaperScissors contract", function () {
     await RockPaperScissorsContract.connect(addr2).chooseScissorsAgainst(
       addr3Address
     );
-
     await RockPaperScissorsContract.connect(addr3).chooseScissorsAgainst(
       addr2Address
     );
@@ -220,11 +218,9 @@ describe("RockPaperScissors contract", function () {
     await RockPaperScissorsContract.connect(addr2).chooseScissorsAgainst(
       addr3Address
     );
-
     await RockPaperScissorsContract.connect(addr3).chooseRockAgainst(
       addr2Address
     );
-
     await RockPaperScissorsContract.connect(addr3).getWinnings();
 
     expect(
@@ -241,7 +237,6 @@ describe("RockPaperScissors contract", function () {
     await RockPaperScissorsContract.connect(owner).enterNextRound(deposit, {
       value: deposit,
     });
-
     await RockPaperScissorsContract.connect(addr1).enterNextRound(deposit, {
       value: deposit,
     });
@@ -271,7 +266,6 @@ describe("RockPaperScissors contract", function () {
 
     const balanceAfterWinning = BigNumber.from(await addr1.getBalance());
     const winnings = BigNumber.from((parseInt(deposit, 10) * 2).toString());
-    const expectedFinalBalance = winnings.add(balanceAfterChoosingMove);
 
     expect(balanceAfterWinning.gt(balanceAfterChoosingMove)).to.eq(true);
   });
